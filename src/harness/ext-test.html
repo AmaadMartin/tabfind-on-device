@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>TabFind extension smoke test</title>
+<link rel="stylesheet" href="panel.css" />
+<script>
+/**
+ * Stubs the chrome.* extension APIs so the *real* side panel bundle
+ * (sidepanel.js, including ChromeTabProvider) can be exercised as an ordinary
+ * web page.
+ *
+ * This is how we verify the extension entry point on machines where enterprise
+ * policy forbids loading unpacked extensions. It covers everything except
+ * Chrome's own plumbing: the panel bootstrap, ChromeTabProvider's query and
+ * extraction paths, restricted-URL handling, discarded tabs and the re-index
+ * message from the service worker.
+ *
+ * Must run before the module loads, hence the inline script.
+ */
+(function () {
+  const FIXTURES = [
+    { id: 1, windowId: 1, title: 'Order #48213 - Return authorization',
+      url: 'https://shop.example.com/orders/48213/rma',
+      _text: 'Your return has been authorized. Print the prepaid label. The amount of $148.00 will be credited back to the original payment method. RMA number 48213-R.' },
+    { id: 2, windowId: 1, title: 'Itinerary confirmation - LHR to SFO',
+      url: 'https://travel.example.com/booking/8823/itinerary',
+      _text: 'Departure London Heathrow Terminal 5 at 10:40, arriving San Francisco International at 13:55. Booking reference QK8823. Seat 24A.' },
+    { id: 3, windowId: 1, title: 'DocuSign - Awaiting your signature',
+      url: 'https://docusign.example.com/envelope/9f2a',
+      _text: 'You have one document awaiting completion: Mutual non-disclosure agreement. Review all pages before adopting your electronic initials.' },
+    { id: 4, windowId: 1, title: 'Hacker News', url: 'https://news.example.com/',
+      _text: 'Top stories, new, show, ask, jobs.' },
+    // A restricted URL: injection must be skipped, not attempted.
+    { id: 5, windowId: 1, title: 'New Tab', url: 'chrome://newtab/', _text: '' },
+    // A discarded tab: must be indexed from title/URL without being woken.
+    { id: 6, windowId: 1, title: 'Slow-roast tomato pasta',
+      url: 'https://recipes.example.com/tomato-pasta', discarded: true,
+      _text: 'SHOULD NOT BE READ' },
+  ];
+
+  const log = [];
+  window.__extLog = log;
+
+  window.chrome = {
+    tabs: {
+      query: async () => { log.push('tabs.query'); return FIXTURES.map(t => ({ ...t })); },
+      get: async (id) => FIXTURES.find(t => t.id === id),
+      update: async (id) => { log.push('tabs.update:' + id); },
+      remove: async (ids) => { log.push('tabs.remove:' + ids); },
+      onUpdated: { addListener() {} },
+      onRemoved: { addListener() {} },
+      onCreated: { addListener() {} },
+    },
+    windows: { update: async () => {} },
+    scripting: {
+      executeScript: async ({ target }) => {
+        const t = FIXTURES.find(x => x.id === target.tabId);
+        if (!t) throw new Error('no such tab');
+        if (t.url.startsWith('chrome://')) throw new Error('cannot inject into chrome://');
+        if (t.discarded) throw new Error('tab is discarded');
+        log.push('inject:' + target.tabId);
+        return [{ result: { text: t._text } }];
+      },
+    },
+    runtime: {
+      onMessage: { addListener: (fn) => { window.__fireMessage = fn; } },
+      sendMessage: async () => {},
+      lastError: undefined,
+    },
+    storage: { session: { get: async () => ({}), set: async () => {} } },
+    sidePanel: { setPanelBehavior: async () => {}, open: async () => {} },
+    action: { onClicked: { addListener() {} } },
+  };
+})();
+</script>
+</head>
+<body>
+<div id="panel"></div>
+<script type="module" src="sidepanel.js"></script>
+</body>
+</html>

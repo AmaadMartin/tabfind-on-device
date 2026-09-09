@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "TabFind — on-device tab search",
+  "version": "0.1.0",
+  "description": "Find open tabs by describing them. Runs on Chrome's built-in model; nothing leaves your device.",
+  "minimum_chrome_version": "138",
+
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage",
+    "sidePanel"
+  ],
+  "host_permissions": ["<all_urls>"],
+
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+
+  "action": {
+    "default_title": "Open TabFind"
+  },
+
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },
+      "description": "Open TabFind"
+    }
+  }
+}

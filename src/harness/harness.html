@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TabFind harness</title>
+<link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+<div class="harness">
+  <div class="harness-panel" id="panel"></div>
+
+  <div class="harness-notes">
+    <h1>TabFind harness</h1>
+    <p>
+      The same panel, pipeline and ADK agents the extension runs, against a fixed
+      synthetic set of 40 tabs. No extension install required, which makes the
+      whole thing scriptable.
+    </p>
+
+    <h2>Try these</h2>
+    <div id="queries"></div>
+
+    <h2>Why these queries</h2>
+    <p>
+      The first four share <strong>no words</strong> with the title of the tab they
+      should find. <code>ctrl-F</code> cannot answer them by construction, so they
+      isolate whether retrieval is actually semantic.
+    </p>
+    <ul>
+      <li><code>that thing about the refund</code> &rarr; &ldquo;Order #48213 - Return authorization&rdquo;</li>
+      <li><code>the flight thing</code> &rarr; &ldquo;Itinerary confirmation - LHR to SFO&rdquo;</li>
+      <li><code>what do I need to sign</code> &rarr; &ldquo;DocuSign - Awaiting your signature&rdquo;</li>
+      <li><code>the doctor thing</code> &rarr; &ldquo;Lab results are ready to view&rdquo;</li>
+    </ul>
+
+    <h2>Reading the trace</h2>
+    <p>
+      Each search prints its pipeline stages with timings: query expansion, then
+      the deterministic BM25 prefilter (how many tabs survived), then one
+      schema-constrained scoring call per surviving candidate.
+    </p>
+
+    <h2>Model</h2>
+    <p id="model-note">Checking what this browser supports&hellip;</p>
+  </div>
+</div>
+<script type="module" src="harness.js"></script>
+</body>
+</html>
